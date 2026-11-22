@@ -1,4 +1,5 @@
 export const installedPrice = "2,300 ₪";
+export const contactEmail = "office@pentador.co.il";
 
 export const contactPhones = [
   { display: "055-721-1021", international: "972557211021" },

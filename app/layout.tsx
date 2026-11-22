@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Heebo } from "next/font/google";
+import localFont from "next/font/local";
+import { AccessibilityTools } from "@/components/accessibility-tools";
 import "./globals.css";
 
-const heebo = Heebo({
-  subsets: ["hebrew", "latin"],
-  weight: ["300", "400", "500", "700", "800"],
+const heebo = localFont({
+  src: "./fonts/Heebo-Variable.ttf",
+  weight: "100 900",
+  style: "normal",
   display: "swap",
 });
 
@@ -22,7 +24,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="he" dir="rtl" className={heebo.className}>
-      <body>{children}</body>
+      <body><AccessibilityTools>{children}</AccessibilityTools></body>
     </html>
   );
 }

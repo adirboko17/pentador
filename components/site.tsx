@@ -1,10 +1,16 @@
 "use client";
 
-import { FormEvent, Fragment, type ReactNode, useEffect, useRef, useState } from "react";
-import { advantages, caveats, contactPhones, faq, insideFeatures, installedPrice, methods, techSpecs } from "@/lib/content";
+import { FormEvent, Fragment, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { advantages, caveats, contactEmail, contactPhones, faq, insideFeatures, installedPrice, methods, techSpecs } from "@/lib/content";
 import { PeepDemo } from "./peep-demo";
 
 const heroTitle = "המנעול שמזהה אותך.";
+const leadFields = [
+  { name: "name", label: "שם מלא", placeholder: "למשל, דנה כהן", autoComplete: "name", maxLength: 100 },
+  { name: "phone", label: "מספר טלפון", placeholder: "050-123-4567", autoComplete: "tel", maxLength: 30 },
+  { name: "city", label: "עיר מגורים", placeholder: "למשל, חיפה", autoComplete: "address-level2", maxLength: 100 },
+] as const;
+type LeadErrors = Partial<Record<(typeof leadFields)[number]["name"], string>>;
 const insideSymbols: Record<(typeof insideFeatures)[number]["title"], string> = {
   "מסך פנימי": "M4 4.5h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1Zm8 13v3m-4 0h8",
   "מצלמת עינית": "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Zm13 0a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
@@ -49,20 +55,14 @@ function OrderLink({
 function HighlightStrip() {
   return (
     <div id="highlights" className="stats scroll-reveal">
-      <div className="stats-window">
-        <div className="stats-track">
-          {[false, true].map(copy => (
-            <dl key={String(copy)} className="stats-group" aria-hidden={copy || undefined} aria-label={copy ? undefined : "המנעול במבט מהיר"}>
-              {highlights.map(([label, value]) => (
-                <div key={label} className="stat">
-                  <dt>{label}</dt>
-                  <dd dir="ltr">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          ))}
-        </div>
-      </div>
+      <dl className="stats-group" aria-label="המנעול במבט מהיר">
+        {highlights.map(([label, value]) => (
+          <div key={label} className="stat">
+            <dt>{label}</dt>
+            <dd dir="ltr">{value}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }
@@ -262,13 +262,25 @@ function SpecDetails() {
 
 export function Site() {
   const [open, setOpen] = useState(0);
-  const [sent, setSent] = useState(false);
+  const [leadStatus, setLeadStatus] = useState<"idle" | "sending" | "sent" | "invalid" | "error">("idle");
+  const [leadErrors, setLeadErrors] = useState<LeadErrors>({});
+  const leadForm = useRef<HTMLFormElement>(null);
+  const leadSuccess = useRef<HTMLHeadingElement>(null);
+  const lastLeadSubmission = useRef<{ body: string; key: string } | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const orderRef = useRef<HTMLElement>(null);
   const [orderVisible, setOrderVisible] = useState(false);
   const footerRef = useRef<HTMLElement>(null);
   const [footerVisible, setFooterVisible] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    leadForm.current?.querySelector<HTMLInputElement>("[aria-invalid=true]")?.focus();
+  }, [leadErrors]);
+
+  useLayoutEffect(() => {
+    if (leadStatus === "sent") leadSuccess.current?.focus();
+  }, [leadStatus]);
 
   useEffect(() => {
     const page = pageRef.current;
@@ -312,9 +324,47 @@ export function Site() {
     };
   }, []);
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSent(true);
+    if (leadStatus === "sending") return;
+
+    const fields = new FormData(event.currentTarget);
+    const name = String(fields.get("name") ?? "").trim();
+    const phone = String(fields.get("phone") ?? "").trim();
+    const city = String(fields.get("city") ?? "").trim();
+    const errors: LeadErrors = {};
+    if (!name) errors.name = "יש להזין שם מלא.";
+    if (!/^\+?[0-9(). -]+$/.test(phone) || !/^\d{7,15}$/.test(phone.replace(/\D/g, ""))) {
+      errors.phone = "יש להזין מספר טלפון תקין, למשל 050-123-4567.";
+    }
+    if (!city) errors.city = "יש להזין עיר מגורים.";
+    setLeadErrors(errors);
+    if (Object.keys(errors).length) {
+      setLeadStatus("idle");
+      return;
+    }
+    const body = JSON.stringify({ name, phone, city, website: fields.get("website") });
+
+    if (lastLeadSubmission.current?.body !== body) {
+      const bytes = crypto.getRandomValues(new Uint8Array(16));
+      const key = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+      lastLeadSubmission.current = { body, key };
+    }
+
+    setLeadStatus("sending");
+    try {
+      const response = await fetch("/api/leads", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": lastLeadSubmission.current.key,
+        },
+        body,
+      });
+      setLeadStatus(response.ok ? "sent" : response.status === 400 ? "invalid" : "error");
+    } catch {
+      setLeadStatus("error");
+    }
   };
 
   return (
@@ -327,191 +377,206 @@ export function Site() {
         </div>
       </header>
 
-      <section id="top" className="hero">
-        <div className="wrap hero-grid">
-          <div className="hero-copy">
-            <img className="hero-logo" src="/assets/logo-white.png" width="1331" height="319" alt="Pentador" />
-            <h1 className="hero-title" aria-label={heroTitle}>
-              {heroTitle.split(" ").map((word, index) => (
-                <Fragment key={word}>
-                  {index > 0 && " "}
-                  <span className="focus-word" aria-hidden="true" style={{ animationDelay: `${index * 110}ms` }}>{word}</span>
-                </Fragment>
-              ))}
-            </h1>
-            <p className="lede">פותחים בזיהוי פנים ורואים מבפנים מי בדלת.</p>
-          </div>
-          <div className="lock-stage" role="img" aria-label="מנעול Pentador מותקן על דלת הכניסה" />
-          <div className="hero-actions">
-            <OrderLink className="btn-lg" showChevron>להזמנת המנעול</OrderLink>
-            <a href="#methods" className="text-link">איך זה עובד</a>
-            <span className="install-note"><strong>{installedPrice}</strong> <span>כולל התקנה</span></span>
-          </div>
-        </div>
-        <div className="wrap highlights-wrap">
-          <HighlightStrip />
-        </div>
-      </section>
-
-      <section id="methods" className="section unlock-section" aria-labelledby="unlock-title">
-        <header className="unlock-intro scroll-reveal">
-          <h2 id="unlock-title">שבע דרכים <br />להיכנס הביתה<span>.</span></h2>
-          <p>כל אחד בבית בוחר איך להיכנס. לאבטחה נוספת אפשר לשלב שני אמצעי זיהוי.</p>
-        </header>
-        <ul className="methods">
-          {methods.map((method, index) => (
-            <li key={method.n} className="method scroll-reveal" style={{ transitionDelay: `${index * 70}ms` }}>
-              <svg className="method-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d={methodSymbols[method.n]} />
-              </svg>
-              <div>
-                <h3>{method.title}</h3>
-                <p>{method.body}</p>
-              </div>
-              {method.n === "01" && <img className="method-product" src="/assets/lock-hero.png" alt="" loading="lazy" />}
-            </li>
-          ))}
-        </ul>
-        <OrderLink className="method-cta" showChevron>להזמנת המנעול</OrderLink>
-      </section>
-
-      <section id="inside" className="inside" aria-labelledby="inside-title">
-        <div className="inside-inner">
-          <header className="center-head">
-            <span className="eyebrow-dark">הצד הפנימי</span>
-            <h2 id="inside-title">רואים מי בדלת לפני שפותחים.</h2>
-          </header>
-          <div className="inside-layout">
-            <div className="product-shot scroll-reveal">
-              <img src="/assets/lock-hero.png" alt="שני צדי המנעול, עם מסך בפנל הפנימי ומצלמה בפנל החיצוני" loading="lazy" />
+      <main id="main-content" tabIndex={-1}>
+        <section id="top" className="hero">
+          <div className="wrap hero-grid">
+            <div className="hero-copy">
+              <img className="hero-logo" src="/assets/logo-white.png" width="1331" height="319" alt="Pentador" />
+              <h1 className="hero-title" aria-label={heroTitle}>
+                {heroTitle.split(" ").map((word, index) => (
+                  <Fragment key={word}>
+                    {index > 0 && " "}
+                    <span className="focus-word" aria-hidden="true" style={{ animationDelay: `${index * 110}ms` }}>{word}</span>
+                  </Fragment>
+                ))}
+              </h1>
+              <p className="lede">פותחים בזיהוי פנים ורואים מבפנים מי בדלת.</p>
             </div>
-            <dl className="inside-features">
-              {insideFeatures.map(({ title, description }) => (
-                <div key={title}>
-                  <dt>
-                    <svg className="inside-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d={insideSymbols[title]} />
-                    </svg>
-                    {title}
-                  </dt>
-                  <dd>{description}</dd>
-                </div>
-              ))}
-            </dl>
+            <div className="lock-stage" role="img" aria-label="מנעול Pentador מותקן על דלת הכניסה" />
+            <div className="hero-actions">
+              <OrderLink className="btn-lg" showChevron>להזמנת המנעול</OrderLink>
+              <a href="#methods" className="text-link">איך זה עובד</a>
+              <span className="install-note"><strong>{installedPrice}</strong> <span>כולל התקנה</span></span>
+            </div>
           </div>
-        </div>
-      </section>
+          <div className="wrap highlights-wrap">
+            <HighlightStrip />
+          </div>
+        </section>
 
-      <section id="security" className="section security" aria-labelledby="security-title">
-        <span className="eyebrow">אבטחה</span>
-        <h2 id="security-title">שם לב גם למי שלא אמור להיות שם.</h2>
-        <div className="peep-card">
-          <div className="peep-intro">
-            <h3>קוד הסוואה</h3>
-            <p>מוסיפים ספרות לפני הקוד ואחריו, עד 24 ספרות בסך הכול. המנעול מזהה את הקוד בתוך הרצף.</p>
-          </div>
-          <PeepDemo />
-        </div>
-        <ul className="sec-list">
-            {securityItems.map((item) => (
-              <li key={item.title} className="sec-item">
-                {item.icon}
-                <div className="sec-copy">
-                  <strong>{item.title}</strong>
-                  <span>{item.body}</span>
+        <section id="methods" className="section unlock-section" aria-labelledby="unlock-title">
+          <header className="unlock-intro scroll-reveal">
+            <h2 id="unlock-title">שבע דרכים <br />להיכנס הביתה<span>.</span></h2>
+            <p>כל אחד בבית בוחר איך להיכנס. לאבטחה נוספת אפשר לשלב שני אמצעי זיהוי.</p>
+          </header>
+          <ul className="methods">
+            {methods.map((method, index) => (
+              <li key={method.n} className="method scroll-reveal" style={{ transitionDelay: `${index * 70}ms` }}>
+                <svg className="method-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d={methodSymbols[method.n]} />
+                </svg>
+                <div>
+                  <h3>{method.title}</h3>
+                  <p>{method.body}</p>
                 </div>
+                {method.n === "01" && <img className="method-product" src="/assets/lock-hero.png" alt="" loading="lazy" />}
               </li>
             ))}
-        </ul>
-      </section>
+          </ul>
+          <OrderLink className="method-cta" showChevron>להזמנת המנעול</OrderLink>
+        </section>
 
-      <SpecDetails />
-
-      <section ref={orderRef} id="order" className="order" aria-labelledby="order-title">
-        <div className="order-inner">
-          <div className="order-summary">
-            <div className="order-offer">
-              <h2 id="order-title">מנעול Pentador</h2>
-              <div className="price-row">
-                <strong><bdi dir="ltr">{installedPrice}</bdi></strong>
-                <span>כולל התקנה בבית</span>
+        <section id="inside" className="inside" aria-labelledby="inside-title">
+          <div className="inside-inner">
+            <header className="center-head">
+              <span className="eyebrow-dark">הצד הפנימי</span>
+              <h2 id="inside-title">רואים מי בדלת לפני שפותחים.</h2>
+            </header>
+            <div className="inside-layout">
+              <div className="product-shot scroll-reveal">
+                <img src="/assets/lock-hero.png" alt="שני צדי המנעול, עם מסך בפנל הפנימי ומצלמה בפנל החיצוני" loading="lazy" />
               </div>
-              <p className="order-contents">בערכה שני מפתחות, שני כרטיסים וסוללת ליתיום נטענת.</p>
+              <dl className="inside-features">
+                {insideFeatures.map(({ title, description }) => (
+                  <div key={title}>
+                    <dt>
+                      <svg className="inside-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d={insideSymbols[title]} />
+                      </svg>
+                      {title}
+                    </dt>
+                    <dd>{description}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
-            <picture className="order-visual">
-              <source media="(min-width: 860px)" srcSet="/assets/lock-door-mobile.webp" />
-              <img src="/assets/lock-hero.png" loading="lazy" alt="מנעול Pentador" />
-            </picture>
           </div>
-          <div className="order-body">
-            {sent ? (
-              <div className="thanks" role="status">
-                <strong>תודה, קיבלנו.</strong>
-                <span>ניצור קשר בהקדם לתיאום ההתקנה.</span>
-              </div>
-            ) : (
-              <form className="order-form" onSubmit={submit} aria-labelledby="order-form-title">
-                <h3 id="order-form-title">תיאום התקנה</h3>
-                <div className="fields">
-                  <label className="order-name">
-                    <span>שם מלא</span>
-                    <input required name="name" placeholder="למשל, דנה כהן" autoComplete="name" />
-                  </label>
-                  <label>
-                    <span>מספר טלפון</span>
-                    <input required name="phone" placeholder="050-123-4567" type="tel" dir="ltr" autoComplete="tel" />
-                  </label>
-                  <label>
-                    <span>עיר מגורים</span>
-                    <input required name="city" placeholder="למשל, חיפה" autoComplete="address-level2" />
-                  </label>
-                </div>
-                <button type="submit" className="btn submit">
-                  חזרו אליי לתיאום
-                </button>
-                <a href={`https://wa.me/${contactPhones[0].international}`} target="_blank" rel="noreferrer" className="wa">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z" />
-                  </svg>
-                  הזמנה בוואטסאפ
-                </a>
-              </form>
-            )}
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section id="faq" aria-labelledby="faq-title">
-        <div className="faq-block">
-          <h2 id="faq-title">שאלות נפוצות</h2>
-          <div className="faq-list">
-            {faq.map((item, index) => {
-              const isOpen = open === index;
-              return (
-                <div key={item.q} className="faq-item" data-open={isOpen}>
-                  <h3>
-                    <button
-                      type="button"
-                      className="faq-q"
-                      aria-expanded={isOpen}
-                      aria-controls={`faq-answer-${index}`}
-                      onClick={() => setOpen((current) => current === index ? -1 : index)}
-                    >
-                      {item.q}
-                      <span className="faq-chevron" aria-hidden="true" />
-                    </button>
-                  </h3>
-                  <div className="accordion-panel" id={`faq-answer-${index}`} inert={!isOpen}>
-                    <div>
-                      <p>{item.a}</p>
+        <section id="security" className="section security" aria-labelledby="security-title">
+          <span className="eyebrow">אבטחה</span>
+          <h2 id="security-title">שם לב גם למי שלא אמור להיות שם.</h2>
+          <div className="peep-card">
+            <div className="peep-intro">
+              <h3>קוד הסוואה</h3>
+              <p>מוסיפים ספרות לפני הקוד ואחריו, עד 24 ספרות בסך הכול. המנעול מזהה את הקוד בתוך הרצף.</p>
+            </div>
+            <PeepDemo />
+          </div>
+          <ul className="sec-list">
+              {securityItems.map((item) => (
+                <li key={item.title} className="sec-item">
+                  {item.icon}
+                  <div className="sec-copy">
+                    <strong>{item.title}</strong>
+                    <span>{item.body}</span>
+                  </div>
+                </li>
+              ))}
+          </ul>
+        </section>
+
+        <SpecDetails />
+
+        <section ref={orderRef} id="order" className="order" aria-labelledby="order-title">
+          <div className="order-inner">
+            <div className="order-summary">
+              <div className="order-offer">
+                <h2 id="order-title">מנעול Pentador</h2>
+                <div className="price-row">
+                  <strong><bdi dir="ltr">{installedPrice}</bdi></strong>
+                  <span>כולל התקנה בבית</span>
+                </div>
+                <p className="order-contents">בערכה שני מפתחות, שני כרטיסים וסוללת ליתיום נטענת.</p>
+              </div>
+              <picture className="order-visual">
+                <source media="(min-width: 860px)" srcSet="/assets/lock-door-mobile.webp" />
+                <img src="/assets/lock-hero.png" loading="lazy" alt="מנעול Pentador" />
+              </picture>
+            </div>
+            <div className="order-body">
+              {leadStatus === "sent" ? (
+                <div className="thanks">
+                  <h3 ref={leadSuccess} tabIndex={-1} aria-describedby="order-success-detail">תודה, קיבלנו.</h3>
+                  <p id="order-success-detail">ניצור קשר בהקדם לתיאום ההתקנה.</p>
+                </div>
+              ) : (
+                <form ref={leadForm} className="order-form" onSubmit={submit} aria-labelledby="order-form-title" aria-describedby="order-required" noValidate>
+                  <h3 id="order-form-title">תיאום התקנה</h3>
+                  <p className="order-form-note" id="order-required">כל השדות חובה.</p>
+                  <div className="fields">
+                    {leadFields.map(({ name, label, placeholder, autoComplete, maxLength }) => (
+                      <div className={name === "name" ? "order-name" : undefined} key={name}>
+                        <label htmlFor={`order-${name}`}>{label}</label>
+                        <input id={`order-${name}`} name={name} placeholder={placeholder} autoComplete={autoComplete}
+                          type={name === "phone" ? "tel" : "text"} dir={name === "phone" ? "ltr" : undefined}
+                          required maxLength={maxLength} readOnly={leadStatus === "sending"} aria-invalid={Boolean(leadErrors[name])}
+                          aria-describedby={leadErrors[name] ? `order-${name}-error` : undefined} />
+                        {leadErrors[name] && <p className="order-field-error" id={`order-${name}-error`}>{leadErrors[name]}</p>}
+                      </div>
+                    ))}
+                  </div>
+                  <div hidden>
+                    <input name="website" tabIndex={-1} autoComplete="off" />
+                  </div>
+                  <button type="submit" className="btn submit" aria-disabled={leadStatus === "sending"}>
+                    {leadStatus === "sending" ? "שולחים את הפרטים…" : "חזרו אליי לתיאום"}
+                  </button>
+                  {(leadStatus === "invalid" || leadStatus === "error") && (
+                    <p className="order-form-error" role="alert">
+                      {leadStatus === "invalid"
+                        ? "בדקו שמילאתם שם, מספר טלפון תקין ועיר מגורים."
+                        : "הפרטים לא נשלחו. אפשר לנסות שוב או לפנות בוואטסאפ."}
+                    </p>
+                  )}
+                  <a href={`https://wa.me/${contactPhones[0].international}`} target="_blank" rel="noreferrer" className="wa">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z" />
+                    </svg>
+                    הזמנה בוואטסאפ<span className="visually-hidden"> (נפתח בכרטיסייה חדשה)</span>
+                  </a>
+                  <span className="visually-hidden" role="status">{leadStatus === "sending" ? "שולחים את הפרטים." : ""}</span>
+                </form>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section id="faq" aria-labelledby="faq-title">
+          <div className="faq-block">
+            <div className="faq-intro">
+              <h2 id="faq-title">שאלות נפוצות</h2>
+              <p>מה כלול במחיר, איך המנעול עובד ומה עושים כשהסוללה נגמרת.</p>
+            </div>
+            <div className="faq-list">
+              {faq.map((item, index) => {
+                const isOpen = open === index;
+                return (
+                  <div key={item.q} className="faq-item" data-open={isOpen}>
+                    <h3>
+                      <button
+                        type="button"
+                        className="faq-q"
+                        aria-expanded={isOpen}
+                        aria-controls={`faq-answer-${index}`}
+                        onClick={() => setOpen((current) => current === index ? -1 : index)}
+                      >
+                        {item.q}
+                        <span className="faq-chevron" aria-hidden="true" />
+                      </button>
+                    </h3>
+                    <div className="accordion-panel" id={`faq-answer-${index}`} inert={!isOpen}>
+                      <div>
+                        <p>{item.a}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
       <footer id="footer" ref={footerRef} className="footer">
         <div className="footer-inner">
@@ -525,7 +590,11 @@ export function Site() {
             {contactPhones.map(({ display, international }) => (
               <a key={international} href={`tel:+${international}`}><bdi dir="ltr">{display}</bdi></a>
             ))}
+            <a href={`mailto:${contactEmail}`}><bdi dir="ltr">{contactEmail}</bdi></a>
           </div>
+          <nav className="footer-site-links" aria-label="עמודי האתר">
+            <a href="/accessibility">הצהרת נגישות</a>
+          </nav>
         </div>
       </footer>
 
