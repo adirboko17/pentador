@@ -229,7 +229,7 @@ function SpecDetails() {
         <div className="specs-desktop">
           <div className="specs-nav">
             <h2 id="specs-title">פרטי המנעול</h2>
-            <div role="tablist" aria-labelledby="specs-title" aria-orientation="vertical">
+            <div role="tablist" aria-labelledby="specs-title">
               {specTopics.map(({ id, title }, index) => (
                 <button key={id} type="button" role="tab" id={id + "-tab"} aria-controls={id + "-detail"}
                   ref={element => { tabs.current[index] = element; }}
@@ -237,7 +237,7 @@ function SpecDetails() {
                   onClick={() => setSelected(index)}
                   onKeyDown={event => {
                     const count = specTopics.length;
-                    const next = { ArrowDown: (index + 1) % count, ArrowUp: (index + count - 1) % count, Home: 0, End: count - 1 }[event.key];
+                    const next = { ArrowLeft: (index + 1) % count, ArrowRight: (index + count - 1) % count, Home: 0, End: count - 1 }[event.key];
                     if (next === undefined) return;
                     event.preventDefault();
                     setSelected(next);
@@ -248,10 +248,9 @@ function SpecDetails() {
               ))}
             </div>
           </div>
-          {specTopics.map(({ id, title, content }, index) => (
+          {specTopics.map(({ id, content }, index) => (
             <div key={id} id={id + "-detail"} role="tabpanel" aria-labelledby={id + "-tab"}
               className="specs-detail" tabIndex={0} hidden={index !== selected}>
-              <h3>{title}</h3>
               {content}
             </div>
           ))}

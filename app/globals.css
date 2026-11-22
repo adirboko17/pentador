@@ -1821,9 +1821,8 @@ input {
   }
 
   .method-product {
-    top: 8%;
-    height: 84%;
-    object-fit: contain;
+    inset-inline-end: 1%;
+    width: clamp(104px, 17%, 132px);
   }
 
   .security {
@@ -1832,7 +1831,7 @@ input {
 
   .specs-block {
     display: block;
-    padding-block-start: 52px;
+    padding-block: clamp(44px, 4vw, 62px);
   }
 
   .specs-block > .spec-card {
@@ -1840,93 +1839,83 @@ input {
   }
 
   .specs-desktop {
-    display: grid;
-    grid-template-columns: minmax(235px, 0.4fr) minmax(0, 1fr);
-    overflow: hidden;
-    border: 1px solid #443b34;
-    border-radius: 22px;
-    background: linear-gradient(145deg, #322921, #201d1b 60%);
+    display: block;
   }
 
-  .specs-nav, .specs-detail {
-    padding: clamp(26px, 3.2vw, 46px);
+  .specs-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    border-block-end: 1px solid #3b332d;
   }
 
-  .specs-nav h2, .specs-detail h3 {
-    margin: 0 0 26px;
-    font-size: clamp(30px, 2.6vw, 38px);
+  .specs-nav h2 {
+    margin: 0;
+    padding-block: 10px 15px;
+    font-size: clamp(28px, 2.5vw, 36px);
     line-height: 1.15;
-    letter-spacing: -.035em;
+    letter-spacing: -.025em;
   }
 
   .specs-nav [role="tablist"] {
-    display: grid;
-    gap: 6px;
+    display: flex;
+    align-self: stretch;
+    gap: clamp(12px, 2vw, 32px);
   }
 
   .specs-nav button {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 45px;
-    padding: 8px 14px;
+    min-height: 44px;
+    padding: 8px 5px 7px;
     border: 0;
-    border-radius: 8px;
+    border-block-end: 2px solid transparent;
     background: transparent;
-    color: #d8cec4;
-    text-align: start;
+    color: #bdb4ad;
     font: inherit;
-    font-size: 17px;
+    font-size: 16px;
+    font-weight: 500;
     cursor: pointer;
   }
 
-  .specs-nav button::before {
-    content: "";
-    width: 3px;
-    height: 17px;
-    border-radius: 3px;
-  }
-
   .specs-nav button:hover {
-    background: #39322c;
+    color: #f5eee7;
   }
 
   .specs-nav button[aria-selected="true"] {
-    background: #493a2f;
-    color: #ffdbb6;
-    font-weight: 700;
-  }
-
-  .specs-nav button[aria-selected="true"]::before {
-    background: #e4a973;
+    border-block-end-color: #dba77b;
+    color: #edbc95;
   }
 
   .specs-desktop :focus-visible {
-    outline: 2px solid currentColor;
-    outline-offset: -4px;
+    outline: 2px solid #edbc95;
+    outline-offset: -3px;
   }
 
   .specs-detail {
-    background: #f5f1eb;
-    color: #27221f;
-    min-height: 340px;
+    padding-block-start: 14px;
+    color: #e6ded7;
   }
 
   .specs-detail ul, .specs-detail .tech-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 clamp(20px, 2.5vw, 38px);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: clamp(24px, 3vw, 48px);
     margin: 0;
     padding: 0;
     list-style: none;
   }
 
+  #caveats-detail ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .specs-detail li, .specs-detail .tech-grid > div {
     display: flex;
-    gap: 10px;
+    gap: 9px;
     align-items: baseline;
     padding-block: 14px;
-    border-top: 1px solid #d8cec2;
+    border-top: 0;
+    border-block-end: 1px solid #282422;
     font-size: 17px;
     line-height: 1.5;
   }
@@ -1934,20 +1923,8 @@ input {
   .specs-detail li svg {
     flex: none;
     align-self: start;
-    width: 24px;
-    height: 24px;
-    padding: 4px;
-    border-radius: 50%;
-    background: #e8ddcf;
-    color: #80502f;
-  }
-
-  .specs-detail .note-mark {
-    background: #96623c;
-  }
-
-  .specs-detail .tech-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-block-start: 4px;
+    color: #dba77b;
   }
 
   .specs-detail .tech-grid > div {
@@ -1955,12 +1932,17 @@ input {
     gap: 4px;
   }
 
+  .specs-detail .tech-grid > div:last-child {
+    padding-block-end: 14px;
+  }
+
   .specs-detail dt {
-    color: #675a50;
+    color: #bdb4ad;
   }
 
   .specs-detail dd {
-    font-size: clamp(18px, 1.6vw, 23px);
+    font-size: clamp(18px, 1.5vw, 21px);
+    text-align: start;
   }
 }
 

@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: "Pentador · מנעול חכם לדלת הבית",
   description:
     "זיהוי פנים תלת־ממדי, טביעת אצבע, קוד, כרטיס ואפליקציה. ומבפנים, מסך שמראה מי עומד בדלת.",
-  icons: { icon: "/assets/logo-dark.png" },
+  icons: { icon: { url: "/favicon.png", type: "image/png" } },
 };
 
 export const viewport: Viewport = {
