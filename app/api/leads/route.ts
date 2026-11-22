@@ -1,3 +1,5 @@
+import { leadEmail } from "./email";
+
 const emailAddress = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
 
 function readField(value: unknown, maxLength: number) {
@@ -52,8 +54,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         from: `Pentador <${from}>`,
         to: [to],
-        subject: "Pentador | ליד חדש לתיאום התקנה",
-        text: `התקבלה בקשה לתיאום התקנה באתר Pentador.\n\nשם מלא: ${name}\nטלפון: ${phone}\nעיר מגורים: ${city}`,
+        ...leadEmail({ name, phone, city }),
       }),
       signal: AbortSignal.timeout(10_000),
     });
