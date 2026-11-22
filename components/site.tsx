@@ -190,6 +190,77 @@ function SpecCard({ title, panelId, children, initiallyOpen = false }: {
   );
 }
 
+const specTopics = [
+  {
+    id: "advantages",
+    title: "יתרונות",
+    content: <ul>{advantages.map(item => (
+      <li key={item}><Check color="currentColor" size={16} /><span>{item}</span></li>
+    ))}</ul>,
+  },
+  {
+    id: "caveats",
+    title: "כדאי לדעת",
+    content: <ul>{caveats.map(item => (
+      <li key={item.text}>
+        <span className="note-mark" aria-hidden="true" />
+        <span>{item.text}{"ltr" in item && <> <bdi dir="ltr">{item.ltr}</bdi></>}</span>
+      </li>
+    ))}</ul>,
+  },
+  {
+    id: "tech-specs",
+    title: "מפרט טכני",
+    content: <dl className="tech-grid">{techSpecs.map(spec => (
+      <div key={spec.k}><dt>{spec.k}</dt><dd><bdi dir="ltr">{spec.v}</bdi></dd></div>
+    ))}</dl>,
+  },
+];
+
+function SpecDetails() {
+  const [selected, setSelected] = useState(0);
+  const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  return (
+    <section id="specs" className="specs" aria-label="פרטי המנעול">
+      <div className="specs-block">
+        {specTopics.map(({ id, title, content }, index) => (
+          <SpecCard key={id} title={title} panelId={id + "-panel"} initiallyOpen={index === 0}>{content}</SpecCard>
+        ))}
+        <div className="specs-desktop">
+          <div className="specs-nav">
+            <h2 id="specs-title">פרטי המנעול</h2>
+            <div role="tablist" aria-labelledby="specs-title" aria-orientation="vertical">
+              {specTopics.map(({ id, title }, index) => (
+                <button key={id} type="button" role="tab" id={id + "-tab"} aria-controls={id + "-detail"}
+                  ref={element => { tabs.current[index] = element; }}
+                  aria-selected={index === selected} tabIndex={index === selected ? 0 : -1}
+                  onClick={() => setSelected(index)}
+                  onKeyDown={event => {
+                    const count = specTopics.length;
+                    const next = { ArrowDown: (index + 1) % count, ArrowUp: (index + count - 1) % count, Home: 0, End: count - 1 }[event.key];
+                    if (next === undefined) return;
+                    event.preventDefault();
+                    setSelected(next);
+                    tabs.current[next]?.focus();
+                  }}>
+                  {title}
+                </button>
+              ))}
+            </div>
+          </div>
+          {specTopics.map(({ id, title, content }, index) => (
+            <div key={id} id={id + "-detail"} role="tabpanel" aria-labelledby={id + "-tab"}
+              className="specs-detail" tabIndex={0} hidden={index !== selected}>
+              <h3>{title}</h3>
+              {content}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function Site() {
   const [open, setOpen] = useState(0);
   const [sent, setSent] = useState(false);
@@ -254,21 +325,13 @@ export function Site() {
           <a href="#top" className="logo-link">
             <img src="/assets/logo-white.png" alt="Pentador" />
           </a>
-          <nav className="nav">
-            <a href="#methods">דרכי פתיחה</a>
-            <a href="#inside">צד פנימי</a>
-            <a href="#security">אבטחה</a>
-            <a href="#specs">מפרט</a>
-            <a href="#faq">שאלות</a>
-          </nav>
-          <OrderLink>להזמנה</OrderLink>
         </div>
       </header>
 
       <section id="top" className="hero">
         <div className="wrap hero-grid">
           <div className="hero-copy">
-            <span className="eyebrow">Pentador Smart Lock</span>
+            <img className="hero-logo" src="/assets/logo-white.png" width="1331" height="319" alt="Pentador" />
             <h1 className="hero-title" aria-label={heroTitle}>
               {heroTitle.split(" ").map((word, index) => (
                 <Fragment key={word}>
@@ -363,48 +426,7 @@ export function Site() {
         </ul>
       </section>
 
-      <section id="specs" className="specs" aria-label="פרטי המנעול">
-        <div className="specs-block">
-          <SpecCard title="יתרונות" panelId="advantages-panel" initiallyOpen>
-              <ul>
-                {advantages.map((item) => (
-                  <li key={item}>
-                    <Check color="currentColor" size={16} />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-          </SpecCard>
-          <SpecCard title="כדאי לדעת" panelId="caveats-panel">
-              <ul>
-                {caveats.map((item) => (
-                  <li key={item.text}>
-                    <span className="note-mark" aria-hidden="true" />
-                    <span>
-                      {item.text}
-                      {"ltr" in item && item.ltr ? (
-                        <>
-                          {" "}
-                          <bdi dir="ltr">{item.ltr}</bdi>
-                        </>
-                      ) : null}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-          </SpecCard>
-          <SpecCard title="מפרט טכני" panelId="tech-specs-panel">
-              <dl className="tech-grid">
-                {techSpecs.map((spec) => (
-                  <div key={spec.k}>
-                    <dt>{spec.k}</dt>
-                    <dd><bdi dir="ltr">{spec.v}</bdi></dd>
-                  </div>
-                ))}
-              </dl>
-          </SpecCard>
-        </div>
-      </section>
+      <SpecDetails />
 
       <section ref={orderRef} id="order" className="order" aria-labelledby="order-title">
         <div className="order-inner">
@@ -417,9 +439,10 @@ export function Site() {
               </div>
               <p className="order-contents">בערכה שני מפתחות, שני כרטיסים וסוללת ליתיום נטענת.</p>
             </div>
-            <div className="order-visual">
-              <img src="/assets/lock-hero.png" loading="lazy" alt="מנעול Pentador, הצד הפנימי והחיצוני" />
-            </div>
+            <picture className="order-visual">
+              <source media="(min-width: 860px)" srcSet="/assets/lock-door-mobile.webp" />
+              <img src="/assets/lock-hero.png" loading="lazy" alt="מנעול Pentador" />
+            </picture>
           </div>
           <div className="order-body">
             {sent ? (

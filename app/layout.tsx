@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Heebo } from "next/font/google";
 import "./globals.css";
 
@@ -13,6 +13,10 @@ export const metadata: Metadata = {
   description:
     "זיהוי פנים תלת־ממדי, טביעת אצבע, קוד, כרטיס ואפליקציה. ומבפנים, מסך שמראה מי עומד בדלת.",
   icons: { icon: "/assets/logo-dark.png" },
+};
+
+export const viewport: Viewport = {
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
