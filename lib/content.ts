@@ -1,9 +1,20 @@
-export const installedPrice = "2,300 ₪";
+const lockAmount = 1900;
+const installationAmount = 400;
+const priceFormat = new Intl.NumberFormat("en-IL");
+export const lockPrice = `${priceFormat.format(lockAmount)} ₪`;
+export const installationPrice = `${priceFormat.format(installationAmount)} ₪`;
+export const installedPrice = `${priceFormat.format(lockAmount + installationAmount)} ₪`;
 export const contactEmail = "office@pentador.co.il";
 
 export const contactPhones = [
   { display: "055-721-1021", international: "972557211021" },
   { display: "055-723-0963", international: "972557230963" },
+] as const;
+
+export const finishes = [
+  { name: "שחור", swatch: "black" },
+  { name: "לבן", swatch: "white" },
+  { name: "ניקל", swatch: "nickel" },
 ] as const;
 
 export const methods = [
@@ -97,7 +108,11 @@ export const faq = [
   },
   {
     q: "מה כולל המחיר?",
-    a: `המחיר הכולל הוא ${installedPrice}, והוא כולל את המנעול והתקנה מקצועית בבית הלקוח.`,
+    a: `מחיר המנעול הוא ${lockPrice}. התקנה מקצועית בבית הלקוח עולה ${installationPrice}. המחיר הכולל עם התקנה הוא ${installedPrice}.`,
+  },
+  {
+    q: "האם המנעול מתאים לשומרי שבת?",
+    a: "כן. לקבלת הנחיות שימוש בשבת, אפשר לפנות אלינו לפני ההזמנה.",
   },
   {
     q: "באילו תנאים המנעול עובד?",

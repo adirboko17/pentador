@@ -5,6 +5,14 @@ import { createContext, type ReactNode, useContext, useEffect, useRef, useState 
 const ReducedMotion = createContext(false);
 const preferencesKey = "pentador-accessibility";
 
+export function readAccessibilityPreferences() {
+  try {
+    return (localStorage.getItem(preferencesKey) ?? "").split(" ").filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 export function useReducedMotion() {
   return useContext(ReducedMotion);
 }
@@ -19,11 +27,7 @@ export function AccessibilityTools({ children }: { children: ReactNode }) {
   const highContrast = preferences.includes("contrast");
 
   useEffect(() => {
-    try {
-      setPreferences((localStorage.getItem(preferencesKey) ?? "").split(" ").filter(Boolean));
-    } catch {
-      // Apply preferences for the current page if storage is unavailable.
-    }
+    setPreferences(readAccessibilityPreferences());
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
     const update = () => setSystemReducedMotion(media.matches);
     update();

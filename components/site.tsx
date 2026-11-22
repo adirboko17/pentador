@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, Fragment, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { advantages, caveats, contactEmail, contactPhones, faq, insideFeatures, installedPrice, methods, techSpecs } from "@/lib/content";
+import { advantages, caveats, contactEmail, contactPhones, faq, finishes, insideFeatures, installationPrice, installedPrice, lockPrice, methods, techSpecs } from "@/lib/content";
 import { PeepDemo } from "./peep-demo";
+import { WhatsAppInquiries } from "./whatsapp-inquiries";
 
 const heroTitle = "המנעול שמזהה אותך.";
 const leadFields = [
@@ -53,16 +54,19 @@ function OrderLink({
 }
 
 function HighlightStrip() {
+  const items = highlights.map(([label, value]) => (
+    <div key={label} className="stat">
+      <dt>{label}</dt>
+      <dd dir="ltr">{value}</dd>
+    </div>
+  ));
+
   return (
-    <div id="highlights" className="stats scroll-reveal">
-      <dl className="stats-group" aria-label="המנעול במבט מהיר">
-        {highlights.map(([label, value]) => (
-          <div key={label} className="stat">
-            <dt>{label}</dt>
-            <dd dir="ltr">{value}</dd>
-          </div>
-        ))}
-      </dl>
+    <div id="highlights" className="stats">
+      <div className="stats-track">
+        <dl className="stats-group" aria-label="המנעול במבט מהיר">{items}</dl>
+        <dl className="stats-group stats-repeat" aria-hidden="true">{items}</dl>
+      </div>
     </div>
   );
 }
@@ -372,16 +376,16 @@ export function Site() {
       <header className="header">
         <div className="header-inner">
           <a href="#top" className="logo-link">
-            <img src="/assets/logo-white.png" alt="Pentador" />
+            <img src="/assets/logo-dark.png" alt="Pentador" />
           </a>
         </div>
       </header>
 
       <main id="main-content" tabIndex={-1}>
         <section id="top" className="hero">
-          <div className="wrap hero-grid">
+          <div className="hero-grid">
             <div className="hero-copy">
-              <img className="hero-logo" src="/assets/logo-white.png" width="1331" height="319" alt="Pentador" />
+              <img className="hero-logo" src="/assets/logo-dark.png" width="1331" height="319" alt="Pentador" />
               <h1 className="hero-title" aria-label={heroTitle}>
                 {heroTitle.split(" ").map((word, index) => (
                   <Fragment key={word}>
@@ -390,18 +394,26 @@ export function Site() {
                   </Fragment>
                 ))}
               </h1>
-              <p className="lede">פותחים בזיהוי פנים ורואים מבפנים מי בדלת.</p>
+              <p className="lede">
+                פותחים בזיהוי פנים ורואים מבפנים מי בדלת.
+                <span className="hero-lede-extra">{" "}אפשר לפתוח גם בטביעת אצבע או בקוד, ולנהל את הגישה לבית מהטלפון.</span>
+              </p>
             </div>
-            <div className="lock-stage" role="img" aria-label="מנעול Pentador מותקן על דלת הכניסה" />
+            <picture className="lock-stage">
+              <source media="(min-width: 860px)" srcSet="/assets/lock-door-desktop.webp" width={1448} height={1086} />
+              <img className="lock-stage-photo" src="/assets/lock-door-mobile.webp" width={896} height={1200}
+                fetchPriority="high" alt="מנעול Pentador מותקן על דלת הכניסה" />
+            </picture>
             <div className="hero-actions">
               <OrderLink className="btn-lg" showChevron>להזמנת המנעול</OrderLink>
               <a href="#methods" className="text-link">איך זה עובד</a>
-              <span className="install-note"><strong>{installedPrice}</strong> <span>כולל התקנה</span></span>
+              <p className="install-note">
+                <span>מנעול <strong><bdi dir="ltr">{lockPrice}</bdi></strong></span>
+                <span>התקנה <strong><bdi dir="ltr">{installationPrice}</bdi></strong></span>
+              </p>
             </div>
           </div>
-          <div className="wrap highlights-wrap">
-            <HighlightStrip />
-          </div>
+          <HighlightStrip />
         </section>
 
         <section id="methods" className="section unlock-section" aria-labelledby="unlock-title">
@@ -485,8 +497,12 @@ export function Site() {
                 <h2 id="order-title">מנעול Pentador</h2>
                 <div className="price-row">
                   <strong><bdi dir="ltr">{installedPrice}</bdi></strong>
-                  <span>כולל התקנה בבית</span>
+                  <span>סה״כ עם התקנה</span>
                 </div>
+                <dl className="price-breakdown">
+                  <div><dt>המנעול</dt><dd><bdi dir="ltr">{lockPrice}</bdi></dd></div>
+                  <div><dt>התקנה בבית</dt><dd><bdi dir="ltr">{installationPrice}</bdi></dd></div>
+                </dl>
                 <p className="order-contents">בערכה שני מפתחות, שני כרטיסים וסוללת ליתיום נטענת.</p>
               </div>
               <picture className="order-visual">
@@ -501,13 +517,13 @@ export function Site() {
                   <p id="order-success-detail">ניצור קשר בהקדם לתיאום ההתקנה.</p>
                 </div>
               ) : (
-                <form ref={leadForm} className="order-form" onSubmit={submit} aria-labelledby="order-form-title" aria-describedby="order-required" noValidate>
+                <form ref={leadForm} className="order-form" onSubmit={submit} aria-labelledby="order-form-title" aria-describedby="order-form-description" noValidate>
                   <h3 id="order-form-title">תיאום התקנה</h3>
-                  <p className="order-form-note" id="order-required">כל השדות חובה.</p>
+                  <p className="order-form-note" id="order-form-description">צעד קטן לדלת חכמה. השאירו פרטים ונחזור אליכם לתיאום.</p>
                   <div className="fields">
                     {leadFields.map(({ name, label, placeholder, autoComplete, maxLength }) => (
                       <div className={name === "name" ? "order-name" : undefined} key={name}>
-                        <label htmlFor={`order-${name}`}>{label}</label>
+                        <label htmlFor={`order-${name}`}>{label}<span className="required-mark" aria-hidden="true">*</span></label>
                         <input id={`order-${name}`} name={name} placeholder={placeholder} autoComplete={autoComplete}
                           type={name === "phone" ? "tel" : "text"} dir={name === "phone" ? "ltr" : undefined}
                           required maxLength={maxLength} readOnly={leadStatus === "sending"} aria-invalid={Boolean(leadErrors[name])}
@@ -539,6 +555,21 @@ export function Site() {
                 </form>
               )}
             </div>
+          </div>
+          <div className="wrap">
+            <ul className="purchase-details">
+              <li>
+                <strong>שלושה גימורים לבחירה</strong>
+                <ul className="finish-list">
+                  {finishes.map(({ name, swatch }) => (
+                    <li key={swatch}><span className="finish-swatch" data-finish={swatch} aria-hidden="true" />{name}</li>
+                  ))}
+                </ul>
+              </li>
+              <li><strong>שנתיים אחריות</strong><span>על מנעול Pentador</span></li>
+              <li><strong>סוללה נוספת</strong><span>זמינה לרכישה בנפרד</span></li>
+              <li><strong>מתאים לשומרי שבת</strong><span>להנחיות שימוש, אפשר לפנות אלינו לפני ההזמנה.</span></li>
+            </ul>
           </div>
         </section>
 
@@ -598,13 +629,14 @@ export function Site() {
         </div>
       </footer>
 
+      <WhatsAppInquiries />
       {scrolled && !orderVisible && !footerVisible ? (
         <aside className="sticky" aria-label="הזמנת מנעול Pentador">
           <div className="sticky-product" aria-hidden="true">
             <img src="/assets/lock-hero.png" alt="" />
           </div>
           <div className="sticky-price">
-            <strong>{installedPrice}</strong>
+            <strong><bdi dir="ltr">{installedPrice}</bdi></strong>
             <span>כולל התקנה</span>
           </div>
           <a href="#order" className="btn sticky-cta">
