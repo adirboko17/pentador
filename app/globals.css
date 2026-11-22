@@ -1451,6 +1451,17 @@ input {
   font-weight: 700;
 }
 
+.submit:disabled {
+  opacity: .7;
+  cursor: wait;
+}
+
+.order-form-error {
+  margin: 10px 0 0;
+  color: #f6bcb0;
+  font-size: 14px;
+}
+
 .order a:focus-visible, .order button:focus-visible {
   outline: 2px solid #edbc95;
   outline-offset: 3px;
@@ -1604,7 +1615,7 @@ input {
     align-items: center;
   }
 
-  .order-form h3, .order-form .fields {
+  .order-form h3, .order-form-error, .order-form .fields {
     grid-column: 1 / -1;
   }
 

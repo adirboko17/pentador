@@ -262,7 +262,8 @@ function SpecDetails() {
 
 export function Site() {
   const [open, setOpen] = useState(0);
-  const [sent, setSent] = useState(false);
+  const [leadStatus, setLeadStatus] = useState<"idle" | "sending" | "sent" | "invalid" | "error">("idle");
+  const lastLeadSubmission = useRef<{ body: string; key: string } | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const orderRef = useRef<HTMLElement>(null);
   const [orderVisible, setOrderVisible] = useState(false);
@@ -312,9 +313,38 @@ export function Site() {
     };
   }, []);
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSent(true);
+    if (leadStatus === "sending") return;
+
+    const fields = new FormData(event.currentTarget);
+    const body = JSON.stringify({
+      name: String(fields.get("name") ?? "").trim(),
+      phone: String(fields.get("phone") ?? "").trim(),
+      city: String(fields.get("city") ?? "").trim(),
+      website: fields.get("website"),
+    });
+
+    if (lastLeadSubmission.current?.body !== body) {
+      const bytes = crypto.getRandomValues(new Uint8Array(16));
+      const key = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+      lastLeadSubmission.current = { body, key };
+    }
+
+    setLeadStatus("sending");
+    try {
+      const response = await fetch("/api/leads", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": lastLeadSubmission.current.key,
+        },
+        body,
+      });
+      setLeadStatus(response.ok ? "sent" : response.status === 400 ? "invalid" : "error");
+    } catch {
+      setLeadStatus("error");
+    }
   };
 
   return (
@@ -444,7 +474,7 @@ export function Site() {
             </picture>
           </div>
           <div className="order-body">
-            {sent ? (
+              {leadStatus === "sent" ? (
               <div className="thanks" role="status">
                 <strong>תודה, קיבלנו.</strong>
                 <span>ניצור קשר בהקדם לתיאום ההתקנה.</span>
@@ -455,20 +485,30 @@ export function Site() {
                 <div className="fields">
                   <label className="order-name">
                     <span>שם מלא</span>
-                    <input required name="name" placeholder="למשל, דנה כהן" autoComplete="name" />
+                      <input required name="name" placeholder="למשל, דנה כהן" autoComplete="name" maxLength={100} readOnly={leadStatus === "sending"} />
                   </label>
                   <label>
                     <span>מספר טלפון</span>
-                    <input required name="phone" placeholder="050-123-4567" type="tel" dir="ltr" autoComplete="tel" />
+                      <input required name="phone" placeholder="050-123-4567" type="tel" dir="ltr" autoComplete="tel" maxLength={30} readOnly={leadStatus === "sending"} />
                   </label>
                   <label>
                     <span>עיר מגורים</span>
-                    <input required name="city" placeholder="למשל, חיפה" autoComplete="address-level2" />
+                      <input required name="city" placeholder="למשל, חיפה" autoComplete="address-level2" maxLength={100} readOnly={leadStatus === "sending"} />
                   </label>
                 </div>
-                <button type="submit" className="btn submit">
-                  חזרו אליי לתיאום
+                  <div hidden>
+                    <input name="website" tabIndex={-1} autoComplete="off" />
+                  </div>
+                  <button type="submit" className="btn submit" disabled={leadStatus === "sending"}>
+                    {leadStatus === "sending" ? "שולחים את הפרטים…" : "חזרו אליי לתיאום"}
                 </button>
+                  {(leadStatus === "invalid" || leadStatus === "error") && (
+                    <p className="order-form-error" role="alert">
+                      {leadStatus === "invalid"
+                        ? "בדקו שמילאתם שם, מספר טלפון תקין ועיר מגורים."
+                        : "הפרטים לא נשלחו. אפשר לנסות שוב או לפנות בוואטסאפ."}
+                    </p>
+                  )}
                 <a href={`https://wa.me/${contactPhones[0].international}`} target="_blank" rel="noreferrer" className="wa">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z" />
