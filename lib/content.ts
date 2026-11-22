@@ -1,5 +1,10 @@
 export const installedPrice = "2,300 ₪";
 
+export const contactPhones = [
+  { display: "055-721-1021", international: "972557211021" },
+  { display: "055-723-0963", international: "972557230963" },
+] as const;
+
 export const methods = [
   {
     n: "01",

@@ -1,17 +1,50 @@
 "use client";
 
-import { FormEvent, Fragment, useEffect, useRef, useState } from "react";
-import { advantages, caveats, faq, insideFeatures, installedPrice, methods, techSpecs } from "@/lib/content";
-import { LockScene } from "./lock-scene";
+import { FormEvent, Fragment, type ReactNode, useEffect, useRef, useState } from "react";
+import { advantages, caveats, contactPhones, faq, insideFeatures, installedPrice, methods, techSpecs } from "@/lib/content";
 import { PeepDemo } from "./peep-demo";
 
 const heroTitle = "המנעול שמזהה אותך.";
+const insideSymbols: Record<(typeof insideFeatures)[number]["title"], string> = {
+  "מסך פנימי": "M4 4.5h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1Zm8 13v3m-4 0h8",
+  "מצלמת עינית": "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Zm13 0a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
+  "פעמון מובנה": "M5 17h14c-2-2-2-4-2-7a5 5 0 0 0-10 0c0 3 0 5-2 7Zm5 3a2.5 2.5 0 0 0 4 0M12 3v2",
+  "נעילה בלחיצה": "M7 10V8a5 5 0 0 1 10 0v2M6 10h12a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1Zm6 4v3",
+  "ידית פתיחה מהירה": "M4 21h16M6 20V4l10-1v17M16 5h3v15M10 12h3",
+  "חיווי קולי בעברית": "M3 9h4l5-4v14l-5-4H3Zm13-1a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14",
+};
 const highlights = [
   ["דרכי פתיחה", "7"],
   ["משתמשים", "250"],
   ["ניהול מרחוק", "Wi‑Fi"],
   ["הפעלת חירום", "USB‑C"],
 ] as const;
+
+function OrderChevron() {
+  return (
+    <svg className="order-cta-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="m10 3-5 5 5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function OrderLink({
+  children,
+  className = "",
+  showChevron = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  showChevron?: boolean;
+}) {
+  return (
+    <a href="#order" className={`btn order-cta ${className}`.trimEnd()}>
+      <img className="order-cta-image" src="/assets/lock-hero.png" alt="" />
+      {children}
+      {showChevron && <OrderChevron />}
+    </a>
+  );
+}
 
 function HighlightStrip() {
   return (
@@ -134,6 +167,29 @@ const securityItems = [
   },
 ];
 
+function SpecCard({ title, panelId, children, initiallyOpen = false }: {
+  title: string;
+  panelId: string;
+  children: ReactNode;
+  initiallyOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(initiallyOpen);
+  return (
+    <div className="spec-card" data-open={isOpen}>
+      <h2>
+        <button type="button" className="tech-toggle" aria-controls={panelId}
+          aria-expanded={isOpen} onClick={() => setIsOpen(current => !current)}>
+          {title}
+          <span className="tech-toggle-icon" aria-hidden="true" />
+        </button>
+      </h2>
+      <div className="accordion-panel" id={panelId} inert={!isOpen}>
+        <div>{children}</div>
+      </div>
+    </div>
+  );
+}
+
 export function Site() {
   const [open, setOpen] = useState(0);
   const [sent, setSent] = useState(false);
@@ -205,9 +261,7 @@ export function Site() {
             <a href="#specs">מפרט</a>
             <a href="#faq">שאלות</a>
           </nav>
-          <a href="#order" className="btn">
-            להזמנה
-          </a>
+          <OrderLink>להזמנה</OrderLink>
         </div>
       </header>
 
@@ -225,17 +279,10 @@ export function Site() {
             </h1>
             <p className="lede">פותחים בזיהוי פנים ורואים מבפנים מי בדלת.</p>
           </div>
-          <div className="lock-stage">
-            <LockScene />
-          </div>
+          <div className="lock-stage" role="img" aria-label="מנעול Pentador מותקן על דלת הכניסה" />
           <div className="hero-actions">
-            <a href="#order" className="btn btn-lg">להזמנת המנעול</a>
-            <a href="#methods" className="text-link">
-              איך זה עובד
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="m6 3 5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </a>
+            <OrderLink className="btn-lg" showChevron>להזמנת המנעול</OrderLink>
+            <a href="#methods" className="text-link">איך זה עובד</a>
             <span className="install-note"><strong>{installedPrice}</strong> <span>כולל התקנה</span></span>
           </div>
         </div>
@@ -263,7 +310,7 @@ export function Site() {
             </li>
           ))}
         </ul>
-        <a href="#order" className="btn method-cta">להזמנת המנעול <span aria-hidden="true">←</span></a>
+        <OrderLink className="method-cta" showChevron>להזמנת המנעול</OrderLink>
       </section>
 
       <section id="inside" className="inside" aria-labelledby="inside-title">
@@ -279,7 +326,12 @@ export function Site() {
             <dl className="inside-features">
               {insideFeatures.map(({ title, description }) => (
                 <div key={title}>
-                  <dt>{title}</dt>
+                  <dt>
+                    <svg className="inside-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d={insideSymbols[title]} />
+                    </svg>
+                    {title}
+                  </dt>
                   <dd>{description}</dd>
                 </div>
               ))}
@@ -311,23 +363,19 @@ export function Site() {
         </ul>
       </section>
 
-      <section id="specs" className="specs" aria-labelledby="specs-title">
+      <section id="specs" className="specs" aria-label="פרטי המנעול">
         <div className="specs-block">
-          <h2 id="specs-title">בקצרה.</h2>
-          <div className="spec-grid">
-            <div className="spec-card">
-              <h3>יתרונות</h3>
+          <SpecCard title="יתרונות" panelId="advantages-panel" initiallyOpen>
               <ul>
                 {advantages.map((item) => (
                   <li key={item}>
-                    <Check color="#b7d4c2" size={16} />
+                    <Check color="currentColor" size={16} />
                     <span>{item}</span>
                   </li>
                 ))}
               </ul>
-            </div>
-            <div className="spec-card">
-              <h3>כדאי לדעת</h3>
+          </SpecCard>
+          <SpecCard title="כדאי לדעת" panelId="caveats-panel">
               <ul>
                 {caveats.map((item) => (
                   <li key={item.text}>
@@ -344,62 +392,70 @@ export function Site() {
                   </li>
                 ))}
               </ul>
-            </div>
-          </div>
-          <div className="tech">
-            <h3>מפרט טכני</h3>
-            <dl className="tech-grid">
-              {techSpecs.map((spec) => (
-                <div key={spec.k}>
-                  <dt>{spec.k}</dt>
-                  <dd><bdi dir="ltr">{spec.v}</bdi></dd>
-                </div>
-              ))}
-            </dl>
-          </div>
+          </SpecCard>
+          <SpecCard title="מפרט טכני" panelId="tech-specs-panel">
+              <dl className="tech-grid">
+                {techSpecs.map((spec) => (
+                  <div key={spec.k}>
+                    <dt>{spec.k}</dt>
+                    <dd><bdi dir="ltr">{spec.v}</bdi></dd>
+                  </div>
+                ))}
+              </dl>
+          </SpecCard>
         </div>
       </section>
 
       <section ref={orderRef} id="order" className="order" aria-labelledby="order-title">
         <div className="order-inner">
-            <div className="order-summary">
-              <div className="order-offer">
-                <h2 id="order-title">הזמנת Pentador</h2>
-                <div className="price-row">
-                  <strong>{installedPrice}</strong>
-                  <span>כולל התקנה אצלכם בבית</span>
-                </div>
-                <div className="order-visual">
-                  <img src="/assets/lock-hero.png" loading="lazy" alt="מנעול Pentador, הצד הפנימי והחיצוני" />
-                </div>
+          <div className="order-summary">
+            <div className="order-offer">
+              <h2 id="order-title">מנעול Pentador</h2>
+              <div className="price-row">
+                <strong><bdi dir="ltr">{installedPrice}</bdi></strong>
+                <span>כולל התקנה בבית</span>
               </div>
-              <p className="order-contents">בערכה: שני מפתחות, שני כרטיסים וסוללת ליתיום נטענת.</p>
+              <p className="order-contents">בערכה שני מפתחות, שני כרטיסים וסוללת ליתיום נטענת.</p>
             </div>
-            <div className="order-body">
-              {sent ? (
-                <div className="thanks" role="status">
-                  <strong>תודה, קיבלנו.</strong>
-                  <span>ניצור קשר בהקדם לתיאום ההתקנה.</span>
+            <div className="order-visual">
+              <img src="/assets/lock-hero.png" loading="lazy" alt="מנעול Pentador, הצד הפנימי והחיצוני" />
+            </div>
+          </div>
+          <div className="order-body">
+            {sent ? (
+              <div className="thanks" role="status">
+                <strong>תודה, קיבלנו.</strong>
+                <span>ניצור קשר בהקדם לתיאום ההתקנה.</span>
+              </div>
+            ) : (
+              <form className="order-form" onSubmit={submit} aria-labelledby="order-form-title">
+                <h3 id="order-form-title">תיאום התקנה</h3>
+                <div className="fields">
+                  <label className="order-name">
+                    <span>שם מלא</span>
+                    <input required name="name" placeholder="למשל, דנה כהן" autoComplete="name" />
+                  </label>
+                  <label>
+                    <span>מספר טלפון</span>
+                    <input required name="phone" placeholder="050-123-4567" type="tel" dir="ltr" autoComplete="tel" />
+                  </label>
+                  <label>
+                    <span>עיר מגורים</span>
+                    <input required name="city" placeholder="למשל, חיפה" autoComplete="address-level2" />
+                  </label>
                 </div>
-              ) : (
-                <form className="order-form" onSubmit={submit} aria-labelledby="order-form-title">
-                  <h3 id="order-form-title">עם מי לתאם התקנה?</h3>
-                  <div className="fields">
-                    <label><input required name="name" placeholder=" " autoComplete="name" /><span>שם מלא</span></label>
-                    <label><input required name="phone" placeholder=" " type="tel" dir="ltr" autoComplete="tel" /><span>מספר טלפון</span></label>
-                  </div>
-                  <button type="submit" className="btn submit">
-                    חזרו אליי לתיאום <span aria-hidden="true">←</span>
-                  </button>
-                  <a href="https://wa.me/" target="_blank" rel="noreferrer" className="wa">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z" />
-                    </svg>
-                    הזמנה בוואטסאפ
-                  </a>
-                </form>
-              )}
-            </div>
+                <button type="submit" className="btn submit">
+                  חזרו אליי לתיאום
+                </button>
+                <a href={`https://wa.me/${contactPhones[0].international}`} target="_blank" rel="noreferrer" className="wa">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z" />
+                  </svg>
+                  הזמנה בוואטסאפ
+                </a>
+              </form>
+            )}
+          </div>
         </div>
       </section>
 
@@ -412,12 +468,22 @@ export function Site() {
               return (
                 <div key={item.q} className="faq-item" data-open={isOpen}>
                   <h3>
-                    <button type="button" className="faq-q" onClick={() => setOpen(isOpen ? -1 : index)} aria-expanded={isOpen} aria-controls={`faq-answer-${index}`}>
+                    <button
+                      type="button"
+                      className="faq-q"
+                      aria-expanded={isOpen}
+                      aria-controls={`faq-answer-${index}`}
+                      onClick={() => setOpen((current) => current === index ? -1 : index)}
+                    >
                       {item.q}
                       <span className="faq-chevron" aria-hidden="true" />
                     </button>
                   </h3>
-                  <p id={`faq-answer-${index}`} hidden={!isOpen}>{item.a}</p>
+                  <div className="accordion-panel" id={`faq-answer-${index}`} inert={!isOpen}>
+                    <div>
+                      <p>{item.a}</p>
+                    </div>
+                  </div>
                 </div>
               );
             })}
@@ -432,6 +498,12 @@ export function Site() {
             <span>ביטחון חכם לבית שלך</span>
             <small><bdi dir="ltr">© 2026 Pentador</bdi></small>
           </div>
+          <div className="footer-phones">
+            <span>ליצירת קשר</span>
+            {contactPhones.map(({ display, international }) => (
+              <a key={international} href={`tel:+${international}`}><bdi dir="ltr">{display}</bdi></a>
+            ))}
+          </div>
         </div>
       </footer>
 
@@ -445,7 +517,7 @@ export function Site() {
             <span>כולל התקנה</span>
           </div>
           <a href="#order" className="btn sticky-cta">
-            להזמנה <span aria-hidden="true">←</span>
+            להזמנה <OrderChevron />
           </a>
         </aside>
       ) : null}
